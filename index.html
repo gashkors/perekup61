@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Перекуп</title>
+<style>
+:root{--bg:#f3f1ea;--c:#fff;--tx:#1f2430;--m:#6b7080;--ln:#e2dfd3;--ac:#2f6fed;--ok:#1f9d55;--bad:#d1453b;--w:#c98a12;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15171d;--c:#1f232c;--tx:#e8e6df;--m:#8f95a5;--ln:#2d3240;--ac:#6b9bff;--ok:#4cc98a;--bad:#ff7a6e;--w:#f0b84a;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px}
+.wrap{max-width:560px;margin:0 auto;padding:10px}
+.top{display:flex;gap:6px;align-items:stretch;margin-bottom:8px}
+.st{flex:1;background:var(--c);border:1px solid var(--ln);border-radius:10px;padding:6px 8px;color:var(--m);font-size:12px}
+.st b{display:block;font-size:16px;color:var(--tx)}
+.tabs{display:flex;gap:4px;margin-bottom:8px}
+.tabs button{flex:1;padding:8px 2px;font-size:13px}
+.tabs .on{background:var(--ac);color:#fff;border-color:var(--ac)}
+button{font:inherit;color:var(--tx);background:var(--c);border:1px solid var(--ln);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:disabled{opacity:.4}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--c);border:1px solid var(--ln);border-radius:12px;padding:10px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.m{color:var(--m);font-size:12px}
+.pr{font-size:17px;font-weight:700}
+.bar{height:6px;background:var(--ln);border-radius:3px;flex:1;min-width:50px}
+.bar i{display:block;height:100%;border-radius:3px}
+.pt{display:flex;gap:8px;align-items:center;margin:4px 0}
+.pt span:first-child{width:84px}
+.btns{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.chat{display:flex;flex-direction:column;gap:5px;max-height:260px;overflow-y:auto;margin:8px 0}
+.b{padding:6px 10px;border-radius:12px;max-width:85%;background:var(--ln)}
+.b.me{align-self:flex-end;background:var(--ac);color:#fff}
+.g{color:var(--ok)}.r{color:var(--bad)}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 8px);background:#222;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;display:none;z-index:9;max-width:90%}
+input,select{font:inherit;padding:6px;border:1px solid var(--ln);border-radius:8px;background:var(--c);color:var(--tx)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="wrap">
+ <div class="top"><div class="st"><b id="cash"></b>касса</div><div class="st"><b id="rep"></b>репутация</div><div class="st"><b id="day"></b>день</div><button class="p" onclick="A.next()">След. день ▶</button></div>
+ <div class="tabs" id="tabs"></div>
+ <div id="main"></div>
+</div>
+<script>
+const PK=['engine','susp','body','int','elec'],PN={engine:'Двигатель',susp:'Ходовая',body:'Кузов',int:'Салон',elec:'Электрика'},PW={engine:.3,susp:.2,body:.2,int:.1,elec:.2},PR={engine:.0016,susp:.001,body:.0012,int:.0006,elec:.0008};
+const M=[['ВАЗ-2107',190,'sed',2000,2011,3],['ВАЗ-2110',220,'sed',2001,2012,3],['Daewoo Nexia',250,'sed',2005,2014,3],['LADA Priora',300,'sed',2008,2018,3],['LADA Granta',380,'sed',2011,2022,3],['Renault Logan',360,'sed',2006,2020,3],['Nissan Almera',380,'sed',2013,2018,2],
+['Hyundai Solaris',600,'sed',2011,2021,3],['Kia Rio',620,'sed',2011,2021,3],['VW Polo',580,'sed',2010,2022,3],['Skoda Octavia',700,'hat',2008,2021,3],['Mazda 3',650,'hat',2008,2018,2],['Kia Ceed',650,'hat',2008,2020,2],['Nissan Qashqai',900,'suv',2008,2021,2],['Hyundai Creta',1000,'suv',2016,2023,2],['Toyota Camry',1000,'sed',2008,2021,3],['Toyota RAV4',1400,'suv',2008,2022,2],['BMW 3 (E90)',600,'sed',2005,2012,2],
+['BMW 5',2000,'sed',2008,2022,2],['Mercedes E-Class',2400,'sed',2008,2022,2],['Audi A6',2200,'sed',2008,2022,2],['Lexus RX',2800,'suv',2009,2022,2],['Toyota Prado',3200,'suv',2009,2022,2],['Volvo XC90',2600,'suv',2008,2022,1.5],
+['Porsche Cayenne',5500,'suv',2010,2023,1.5],['Mercedes S-Class',7500,'sed',2008,2023,1.2],['Range Rover',7000,'suv',2010,2023,1.2],['BMW X7',8500,'suv',2019,2024,1],['Porsche 911',9000,'sport',2008,2024,1],['Land Cruiser 300',7500,'suv',2021,2024,1],
+['Mercedes G-Class',12000,'suv',2012,2024,1],['Bentley Continental GT',14000,'sport',2008,2024,.8],['Lamborghini Urus',17000,'suv',2019,2024,.7],['Ferrari F8',18000,'sport',2019,2024,.6],['Rolls-Royce Ghost',18000,'sed',2012,2024,.6]];
+const NM=['Алексей','Дмитрий','Сергей','Андрей','Максим','Игорь','Олег','Артём','Виктор','Николай','Марина','Ольга','Елена','Анна','Татьяна','Ирина','Светлана','Юлия','Руслан','Тимур','Эльдар','Павел','Кирилл','Роман','Денис','Владимир','Наталья','Екатерина','Борис','Станислав'],LT='КМСПВТЛБРДЗ';
+const park=c=>Math.round(400+c.v0*.0004),dc=c=>Math.round((2500+c.v0*.002)/100)*100,phc=c=>Math.round((1500+c.v0*.001)/100)*100;
+const LO=[0,1e5,25e4,5e5,1e6,2e6,5e6,1e7,2e7],HI=[25e4,5e5,1e6,2e6,5e6,1e7,2e7,35e6,1e9];
+const lb=v=>v>=1e9?'любая':v===0?'любая':v>=1e6?(v/1e6)+' млн':(v/1000)+' тыс';
+const COL=['#c0392b','#2c3e50','#7f8c8d','#ecf0f1','#27ae60','#2980b9','#f39c12','#111'];
+const SAY=['Торг у капота.','Не бита, не крашена. Всё родное.','Продаю, потому что пересел на новую.','Один хозяин, обслуживалась у дилера.','Срочно! Уезжаю.','Состояние для своих лет.','Без вложений, садись и езжай.'];
+let S={cash:350000,rep:30,day:1,id:1,market:[],garage:[],hist:[],q:[]},U={tab:'m',ch:null,lo:0,hi:1e9};
+try{const j=localStorage.getItem('perekup2');if(j)S=JSON.parse(j)}catch(e){}
+const $=id=>document.getElementById(id),R=(a,b)=>Math.round(a+Math.random()*(b-a)),cl=v=>Math.max(5,Math.min(100,Math.round(v))),pick=a=>a[R(0,a.length-1)];
+const f=n=>Math.round(n).toLocaleString('ru-RU')+' ₽';
+function save(){try{localStorage.setItem('perekup2',JSON.stringify(S))}catch(e){}}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',3200)}
+function val(c,real=1){const p=real?c.p:c.cl;let q=0,bad=0;PK.forEach(k=>{q+=PW[k]*p[k];if(p[k]<40)bad++});return c.v0*(.65+q*.006-.05*bad)*(1+.03*c.detail)}
+function pickM(){let r=Math.random()*M.reduce((a,m)=>a+m[5],0);for(const m of M){if((r-=m[5])<=0)return m}return M[0]}
+function mk(){const m=pickM(),y=R(m[3],m[4]),age=2026-y,km=Math.max(3000,age*(m[1]>5000?R(4000,12000):R(9000,20000))),v0=m[1]*1000*(.45+(y-2005)*.04)*(1-Math.max(-.1,(km-age*14000)/400000)),base=R(30,88)-age*.8,p={},c={};
+ PK.forEach(k=>p[k]=cl(base+R(-25,20)));
+ PK.forEach(k=>c[k]=(k==='body'||k==='int')?cl(p[k]+R(-5,5)):cl(p[k]+(p[k]<55&&Math.random()<.6?R(15,35):R(-3,8))));
+ const o={id:S.id++,name:m[0],body:m[2],year:y,km,color:pick(COL),v0,p,cl:c,known:0,detail:0,tune:0,spent:0,buy:0,say:pick(SAY),st:'m',ad:null,chats:[],neg:0};
+ const v=val(o,0)*(.95+Math.random()*.17),u=v<2e6?1000:v<1e7?1e4:5e4;o.ask=Math.round(v/u)*u;o.floor=o.ask*(.88+Math.random()*.08);return o}
+function fill(){while(S.market.length<14)S.market.push(mk())}
+const BD={sed:['M6 38 L12 26 Q16 20 26 19 L44 8 Q50 6 58 6 L86 6 Q94 7 98 16 L108 24 Q116 28 116 38 L116 42 L6 42Z','M40 12 L50 10 L58 10 L58 22 L34 22Z M64 10 L84 10 L92 22 L64 22Z',42],hat:['M6 38 L10 26 Q14 21 24 20 L40 8 L84 8 Q92 9 96 18 L110 26 Q114 30 114 38 L114 42 L6 42Z','M44 12 L82 12 L90 22 L38 22Z',42],suv:['M6 36 L8 24 Q10 18 18 17 L30 8 L96 8 Q102 8 105 16 L112 22 Q116 26 116 36 L116 44 L6 44Z','M34 12 L60 12 L60 22 L26 22Z M66 12 L94 12 L100 22 L66 22Z',44],sport:['M4 40 L14 30 Q22 25 40 22 L58 12 Q66 9 78 10 L96 20 Q112 24 116 34 L116 42 L4 42Z','M60 14 L76 13 L90 22 L56 22Z',42]};
+const svg=(c,b)=>{const d=BD[b]||BD.sed,r=b==='suv'?10:9;return `<svg viewBox="0 0 120 56" width="96"><path d="${d[0]}" fill="${c}" stroke="#0006"/><path d="${d[1]}" fill="#9cd3f0" opacity=".85"/><circle cx="30" cy="${d[2]}" r="${r}" fill="#222"/><circle cx="92" cy="${d[2]}" r="${r}" fill="#222"/><circle cx="30" cy="${d[2]}" r="4" fill="#999"/><circle cx="92" cy="${d[2]}" r="4" fill="#999"/></svg>`};
+const word=v=>v>=80?'отличное':v>=60?'хорошее':v>=40?'среднее':'слабое',colr=v=>v>=65?'var(--ok)':v>=40?'var(--w)':'var(--bad)';
+const worst=c=>PK.reduce((a,k)=>c.p[k]<c.p[a]?k:a,'engine');
+const hid=c=>PK.filter(k=>c.p[k]<50);
+const wt=c=>{const k=worst(c);return c.p[k]<60?PN[k].toLowerCase()+' слабоват':'есть мелочи по возрасту'};
+const repL=()=>S.rep<20?'Сомнительная':S.rep<40?'Новичок':S.rep<60?'Проверенный':S.rep<80?'Уважаемый':'Легенда рынка';
+const T={
+hag:{n:'Торгаш',e:'🧔',g:.92,sc:[
+ {s:'Здравствуйте! Ещё продаёте? За {P} дороговато. Давайте поторгуемся.',o:[['Торг уместен, но в разумных пределах.',{}],['Цена окончательная, рынок такой.',{m:-1}],['Приезжайте, посмотрите — тогда и о цене.',{m:1,end:'visit'}]]},
+ {s:'Скиньте 15% — заберу сегодня, наличными.',o:[['Скину 5%, больше не могу.',{d:5}],['10%, если сегодня.',{m:1,d:10}],['Ладно, 15% — по рукам.',{m:2,d:15}],['Нет. Мне не горит.',{m:-2}]]},
+ {s:'А зимняя резина в комплекте?',o:[['Отдам в подарок.',{m:2,d:2}],['Резина отдельно.',{m:-1}],['Давайте заканчивать.',{end:'try'}]]}]},
+new:{n:'Новичок',e:'🙂',g:1.08,sc:[
+ {s:'Добрый день! Это моя первая машина. Она надёжная? Ничего не стучит?',o:[['Честно: {wt}. Цена с учётом этого.',{m:2,hon:1}],['Идеальная, вкладывать ничего не надо!',{m:2,lie:1}],['Лучше приезжайте на диагностику.',{m:1,hon:1,end:'visit'}]]},
+ {s:'А скидка будет? Друг сказал, всегда надо просить.',o:[['Скину 3%, вы мне симпатичны.',{m:1,d:3}],['Нет, цена и так хорошая.',{}],['8%, но только сегодня.',{m:2,d:8}]]},
+ {s:'А документы в порядке? ПТС оригинал?',o:[['Оригинал, один хозяин, всё чисто.',{m:1}],['Есть нюанс: ПТС дубликат.',{m:-1,hon:1}],['Давайте оформлять.',{end:'try'}]]}]},
+dot:{n:'Дотошный',e:'🧐',g:1,sc:[
+ {s:'Здравствуйте. Приеду с толщиномером и сканером. Что по двигателю: масло, ГРМ, вложения?',o:[['Всё по регламенту, документы покажу.',{m:1,lie:1}],['Тут есть вопросы: {wt}. В цене учтено.',{m:2,hon:1}],['Не лезьте в мотор, он живой.',{m:-2,lie:1}]]},
+ {s:'Когда можно приехать на подъёмник?',o:[['Завтра, приезжайте.',{m:1,end:'visit'}],['Подъёмника нет, смотрите на улице.',{m:-2,end:'visit'}],['Скину 4% за диагностику, но приезжайте завтра.',{d:4,end:'visit'}]]}]},
+fam:{n:'Семья',e:'👨‍👩‍👧',g:1,sc:[
+ {s:'Здравствуйте! Нужна машина для семьи: надёжная, с детским креслом. Что по электрике и подушкам?',o:[['Все системы в порядке, подушки целы.',{m:1,lie:1}],['Честно: {wt}. На безопасность не влияет.',{m:2,hon:1}],['Приезжайте всей семьёй, покажу.',{m:1,end:'visit'}]]},
+ {s:'Бюджет ограничен. Сделаете скидку?',o:[['3% и коврики в подарок.',{m:2,d:3}],['6%.',{m:1,d:6}],['Без скидки.',{m:-1}]]}]},
+res:{n:'Перекуп',e:'😎',g:.85,sc:[
+ {s:'Привет, коллега. Вижу, машина с косяками. Заберу сразу, налом, за {P75}.',o:[['Согласен, мне важна скорость.',{end:'cut',d:25}],['Скину 12% и по рукам.',{d:12}],['Не по рынку. До свидания.',{end:'leave'}]]},
+ {s:'12% — норм, если решаем сегодня. Ключи?',o:[['Ключи ваши.',{end:'try'}],['Тогда 8%, и всё.',{d:-4,m:-1,end:'try'}]]}]},
+s1:{n:'Подозрительный',e:'🕶️',g:0,sc:[
+ {s:'Добрый день! Беру не глядя, я в другом городе. Пришлю курьера, оплата по «безопасной сделке». Не против?',o:[['Нет, только лично и при мне.',{end:'leave',rep:3}],['Окей, как оформляем?',{}]]},
+ {s:'Пришлите фото ПТС и паспорта и оплатите страховку 3 000 ₽ за доставку — вернётся вместе с оплатой.',o:[['Фото паспорта — ни за что. Разговор окончен.',{end:'leave',rep:2}],['Хорошо, перевожу 3 000 ₽.',{end:'scam1'}],['Присылайте доверенность, без страховки.',{end:'leave'}]]}]},
+s2:{n:'Подозрительный',e:'🕶️',g:0,sc:[
+ {s:'Беру за {P} без торга, еду к вам. Деньги переведу заранее — я спешу.',o:[['Отлично, жду.',{}],['Деньги — только на счёте.',{m:1}]]},
+ {s:'Вот скрин перевода. Банк завис, зачислится позже. Давайте ключи, тороплюсь.',o:[['Подожду, пока деньги придут на счёт.',{end:'leave',rep:3}],['Ладно, держите ключи.',{end:'scam2'}],['Звоню в банк, проверяю.',{end:'leave',rep:2}]]}]}};
+const fm=(t,c)=>t.replace('{P75}',f(c.ad.price*.75)).replace('{P}',f(c.ad.price)).replace('{wt}',wt(c));
+function say(ch,t,w='b'){ch.msgs.push({f:w,t})}
+function show(c,ch){const n=T[ch.type].sc[ch.step];say(ch,fm(n.s,c));ch.opts=n.o}
+function newChat(c){const type=Math.random()<.14*(1.6-S.rep/100)?pick(['s1','s2']):pick(['hag','hag','new','new','dot','fam','fam','res']);
+ const ch={id:S.id++,name:pick(NM)+' '+LT[R(0,LT.length-1)]+'.',type,mood:5+(c.ad.desc==='honest'?1:0)+(c.ad.photo?1:0)+(c.tune?1:0),d:0,lie:c.ad.desc==='brag',hon:c.ad.desc==='honest',step:0,st:'open',age:0,msgs:[],opts:[]};
+ c.chats.push(ch);show(c,ch);return ch}
+function deal(c,ch,price){const profit=price-c.buy-c.spent;S.cash+=price;S.hist.push({n:c.name+' '+c.year,buy:c.buy,sp:c.spent,sell:price,pr:profit,day:S.day});
+ say(ch,'Договорились! Забираю.');ch.st='done';ch.opts=[];c.chats.forEach(x=>{if(x.st!=='done'){x.st='done';x.opts=[]}});
+ S.garage=S.garage.filter(x=>x.id!==c.id);
+ if(ch.lie&&hid(c).length){S.q.push({d:S.day+1,r:-6,t:'Покупатель «'+c.name+'» нашёл скрытые проблемы и оставил плохой отзыв: −6 к репутации'});}else S.rep=Math.min(100,S.rep+(ch.hon?3:1));
+ toast((profit>=0?'Продано! Прибыль ':'Продано в минус: ')+f(profit));U.ch=null}
+function resolve(c,ch){const T0=T[ch.type],price=Math.round(c.ad.price*(1-ch.d/100)),mx=val(c)*T0.g*(1+(ch.mood-5)*.012);
+ if(price<=mx)return deal(c,ch,price);
+ if(ch.mood>=4){const p=Math.round(mx/100)*100;say(ch,'Дороговато. Могу дать максимум '+f(p)+'.');ch.opts=[['Согласен на '+f(p)+'.',{end:'cutP',p}],['Нет, не отдам.',{end:'leave'}]]}
+ else{say(ch,'Нет, дороговато. Не договорились.');ch.st='done';ch.opts=[]}}
+function pickOpt(cid,chid,i){const c=S.garage.find(x=>x.id===cid),ch=c.chats.find(x=>x.id===chid),[lb,fx]=ch.opts[i];
+ say(ch,fm(lb,c),'me');ch.mood+=fx.m||0;ch.d+=fx.d||0;if(fx.lie)ch.lie=true;if(fx.hon)ch.hon=true;if(fx.rep)S.rep=Math.min(100,S.rep+fx.rep);
+ const e=fx.end;ch.opts=[];
+ if(e==='visit'){say(ch,'Договорились, приеду завтра.');ch.st='wait';ch.vd=S.day+1}
+ else if(e==='leave'){say(ch,'Понял, тогда не договорились.');ch.st='done'}
+ else if(e==='cut')deal(c,ch,Math.round(c.ad.price*(1-ch.d/100)));
+ else if(e==='cutP')deal(c,ch,fx.p);
+ else if(e==='scam1'){S.cash-=3000;say(ch,'(Покупатель пропал вместе с вашими 3 000 ₽.)');ch.st='done';toast('Вас кинули на 3 000 ₽. Урок выучен.')}
+ else if(e==='scam2'){say(ch,'(Деньги так и не пришли. Машина уехала.)');ch.st='done';S.garage=S.garage.filter(x=>x.id!==c.id);S.hist.push({n:c.name+' '+c.year,buy:c.buy,sp:c.spent,sell:0,pr:-(c.buy+c.spent),day:S.day});toast('Вас кинули: машина ушла без оплаты!');U.ch=null}
+ else if(e==='try')resolve(c,ch);
+ else{ch.step++;if(ch.step>=T[ch.type].sc.length)resolve(c,ch);else show(c,ch)}
+ save();R_()}
+function visit(c,ch){const h=hid(c),found=h.length&&c.ad.desc!=='honest'&&(ch.lie||(ch.type==='dot'&&!ch.hon));
+ say(ch,'Приехал на осмотр.');
+ if(found){const k=h[0];say(ch,'Вскрылось: '+PN[k].toLowerCase()+' в плохом состоянии. Вы говорили иначе.');
+  if(ch.type==='dot'||ch.mood<4){say(ch,'Разворачиваюсь.');ch.st='done';S.rep=Math.max(0,S.rep-4)}
+  else{ch.st='open';ch.opts=[['Скину 12% за неудобство.',{d:12,end:'try',rep:-2}],['Не скину — до свидания.',{end:'leave',rep:-3}]]}}
+ else{ch.mood++;ch.st='open';say(ch,'Машина соответствует описанию. Берём?');ch.opts=[['Держите цену '+f(c.ad.price*(1-ch.d/100))+'.',{end:'try'}],['Скину ещё 2% за то, что приехали.',{d:2,m:1,end:'try'}]]}}
+const A={
+ next(){S.day++;const pk=S.garage.reduce((a,c)=>a+park(c),0);S.cash-=pk;let n=0;
+  S.market.splice(0,4);S.q=S.q.filter(e=>{if(e.d<=S.day){S.rep=Math.max(0,S.rep+e.r);toast(e.t);return false}return true});
+  S.garage.forEach(c=>{if(c.st!=='sale')return;c.chats.forEach(ch=>{if(ch.st==='open'&&++ch.age>=2){ch.st='done';ch.opts=[];say(ch,'(Покупатель не дождался ответа и ушёл.)')}
+    if(ch.st==='wait'&&S.day>=ch.vd)visit(c,ch)});
+   const fv=val(c),r=c.ad.price/fv,lam=Math.max(0,Math.min(6,.35+(1/r-1)*5+S.rep/120+(c.ad.photo?.3:0)+c.tune*.3+(c.ad.desc==='brag'?.4:0)+(r<.75?(.75-r)*14:0))),k=Math.floor(lam)+(Math.random()<lam%1?1:0),cap=r<.75?9:3;if(k>3)toast('🔥 «'+c.name+'»: цена сильно ниже рынка — пишут все!');
+   for(let i=0;i<k&&c.chats.filter(x=>x.st!=='done').length<cap;i++){newChat(c);n++}});
+  fill();save();R_();toast('День '+S.day+(n?': новых покупателей — '+n:'')+(S.garage.length?'. Парковка −'+f(pk):''))},
+ tab(t){U.tab=t;R_()},
+ rng(){U.lo=+$('lo').value;U.hi=+$('hi').value;if(U.hi<=U.lo)U.hi=1e9;R_()},
+ bid(id,p){const c=S.market.find(x=>x.id===id),o=c.ask*(1-p/100);
+  if(o>=c.floor){c.ask=Math.round(o);A.buy(id);return}
+  c.neg++;if(c.neg>=2){S.market=S.market.filter(x=>x.id!==id);toast('Продавец обиделся на торг и снял объявление');}else{c.ask=Math.round(Math.max(c.floor,c.ask*(1-p/200))/100)*100;toast('Продавец: «Ниже '+f(c.ask)+' не отдам»')}R_()},
+ buy(id){const c=S.market.find(x=>x.id===id);if(S.cash<c.ask)return toast('Не хватает денег');S.cash-=c.ask;c.buy=c.ask;c.st='g';S.market=S.market.filter(x=>x.id!==id);S.garage.push(c);toast('Куплено: '+c.name+' за '+f(c.buy));save();R_()},
+ diag(id){const c=S.market.concat(S.garage).find(x=>x.id===id);const d=dc(c);if(S.cash<d)return toast('Не хватает денег');S.cash-=d;c.known=1;if(c.st==='g')c.spent+=d;save();R_()},
+ fix(id,k){const c=S.garage.find(x=>x.id===id),cost=Math.round(c.v0*PR[k]*25/100)*100;if(S.cash<cost)return toast('Не хватает денег');S.cash-=cost;c.spent+=cost;c.p[k]=cl(c.p[k]+25);c.cl[k]=c.p[k];save();R_()},
+ det(id){const c=S.garage.find(x=>x.id===id),cost=Math.round(c.v0*.015/100)*100;if(c.detail||S.cash<cost)return;S.cash-=cost;c.spent+=cost;c.detail=1;save();R_()},
+ tun(id){const c=S.garage.find(x=>x.id===id),cost=Math.round(c.v0*.06/100)*100;if(c.tune||S.cash<cost)return;S.cash-=cost;c.spent+=cost;c.tune=1;save();R_()},
+ est(id){const c=S.garage.find(x=>x.id===id),v=val(c,c.known)*(.93+Math.random()*.14);toast('Похожие машины на рынке: ≈ '+f(Math.round(v/1000)*1000)+(c.known?'':' (без диагностики оценка грубая)'))},
+ sell(id){const c=S.garage.find(x=>x.id===id),pr=+$('pr'+id).value,ph=$('ph'+id).checked;if(!pr)return;if(ph){const q=phc(c);if(S.cash<q)return toast('Не хватает денег на фото');S.cash-=q;c.spent+=q}
+  c.st='sale';c.ad={price:pr,desc:$('ds'+id).value,photo:ph,day:S.day};const r=pr/val(c),k=r<.75?Math.min(7,Math.round((.75-r)*18)+2):1;for(let i=0;i<k;i++)newChat(c);toast(k>2?'🔥 Цена сильно ниже рынка — сообщения посыпались ('+k+')!':'Объявление опубликовано. Уже кто-то написал!');U.tab='s';save();R_()},
+ off(id){const c=S.garage.find(x=>x.id===id);c.st='g';c.chats=[];c.ad=null;save();R_()},
+ cut(id){const c=S.garage.find(x=>x.id===id);c.ad.price=Math.round(c.ad.price*.95/1000)*1000;toast('Цена снижена до '+f(c.ad.price));save();R_()},
+ open(a,b){U.ch=[a,b];R_()},
+ opt(a,b,i){pickOpt(a,b,i)},
+ reset(){if(confirm('Начать заново?')){localStorage.removeItem('perekup2');location.reload()}}};
+function parts(c,show){return PK.map(k=>`<div class="pt"><span>${PN[k]}</span>${show?`<div class="bar"><i style="width:${c.p[k]}%;background:${colr(c.p[k])}"></i></div><span class="m">${c.p[k]}</span>`:`<span class="m">${word(c.cl[k])} (по словам продавца)</span>`}</div>`).join('')}
+function head(c){return `<div class="row"><div style="display:flex;gap:8px;align-items:center">${svg(c.color,c.body)}<div><b>${c.name}, ${c.year}</b><div class="m">${c.km.toLocaleString('ru-RU')} км</div></div></div></div>`}
+function prOpts(c){const e=val(c,c.known),u=e<2e6?1e3:e<1e7?1e4:5e4;let o='';for(let t=40;t<=160;t+=5){const v=Math.round(e*t/100/u)*u;o+=`<option value="${v}" ${t===105?'selected':''}>${f(v)} (${t>=100?'+':''}${t-100}%)</option>`}return o}
+function flt(){return `<div class="card row"><span class="m">Цена от</span><select id="lo" onchange="A.rng()">${LO.map(v=>`<option value="${v}" ${U.lo===v?'selected':''}>${lb(v)}</option>`).join('')}</select><span class="m">до</span><select id="hi" onchange="A.rng()">${HI.map(v=>`<option value="${v}" ${U.hi===v?'selected':''}>${lb(v)}</option>`).join('')}</select></div>`}
+function vMarket(){const L=S.market.filter(c=>c.ask>=U.lo&&c.ask<=U.hi);return flt()+L.map(c=>`<div class="card">${head(c)}<div class="row" style="margin:6px 0"><span class="pr">${f(c.ask)}</span></div><div class="m">«${c.say}»</div>${parts(c,c.known)}
+ <div class="btns"><button class="p" onclick="A.buy(${c.id})">Купить за ${f(c.ask)}</button>${[5,10,15].map(p=>`<button onclick="A.bid(${c.id},${p})">торг −${p}%</button>`).join('')}${c.known?'':`<button onclick="A.diag(${c.id})">Диагностика ${f(dc(c))}</button>`}</div></div>`).join('')||'<div class="card m">В этом диапазоне ничего нет — измени цену или жди следующего дня</div>'}
+function vGarage(){return S.garage.map(c=>{const cost=k=>f(Math.round(c.v0*PR[k]*25/100)*100);
+ return `<div class="card">${head(c)}<div class="m">Куплена за ${f(c.buy)}, вложено ${f(c.spent)}${c.detail?' · детейлинг':''}${c.tune?' · тюнинг':''}</div>${parts(c,c.known)}
+ ${c.st==='sale'?`<div class="m">Выставлена на продажу — раздел «Продажа»</div>`:`<div class="btns">${c.known?PK.map(k=>`<button onclick="A.fix(${c.id},'${k}')" ${c.p[k]>=100?'disabled':''}>${PN[k]} +25 · ${cost(k)}</button>`).join(''):`<button class="p" onclick="A.diag(${c.id})">Диагностика ${f(dc(c))}</button>`}
+ <button onclick="A.det(${c.id})" ${c.detail?'disabled':''}>Детейлинг · ${f(Math.round(c.v0*.015/100)*100)}</button><button onclick="A.tun(${c.id})" ${c.tune?'disabled':''}>Тюнинг · ${f(Math.round(c.v0*.06/100)*100)}</button><button onclick="A.est(${c.id})">Оценить рынок</button></div>
+ <div class="btns" style="align-items:center"><select id="pr${c.id}">${prOpts(c)}</select><select id="ds${c.id}"><option value="honest">Честное описание</option><option value="neutral" selected>Обычное</option><option value="brag">Приукрасить</option></select><label class="m"><input id="ph${c.id}" type="checkbox"> фото ${f(phc(c))}</label><button class="p" onclick="A.sell(${c.id})">Выставить</button></div>`}</div>`}).join('')||'<div class="card m">Гараж пуст. Купи машину в разделе «Объявления».</div>'}
+function vSale(){const cs=S.garage.filter(c=>c.st==='sale');if(!cs.length)return '<div class="card m">Нет активных объявлений. Выставь машину из гаража.</div>';
+ return cs.map(c=>`<div class="card">${head(c)}<div class="row"><span class="pr">${f(c.ad.price)}</span><span><button onclick="A.cut(${c.id})">−5%</button> <button onclick="A.off(${c.id})">Снять</button></span></div>
+ <div class="btns">${c.chats.map(h=>`<button class="${U.ch&&U.ch[1]===h.id?'p':''}" onclick="A.open(${c.id},${h.id})">👤 ${h.name||'Покупатель'}${h.st==='open'&&h.opts.length?' ●':h.st==='wait'?' ⏳':h.st==='done'?' ✕':''}</button>`).join('')||'<span class="m">Пока никто не написал — жди следующего дня</span>'}</div>
+ ${U.ch&&U.ch[0]===c.id?(()=>{const h=c.chats.find(x=>x.id===U.ch[1]);return h?`<div class="chat">${h.msgs.map(m=>`<div class="b ${m.f}">${m.t}</div>`).join('')}</div><div class="btns" style="flex-direction:column">${h.opts.map((o,i)=>`<button style="text-align:left" onclick="A.opt(${c.id},${h.id},${i})">${fm(o[0],c)}</button>`).join('')}${h.st==='wait'?'<span class="m">Покупатель приедет на осмотр завтра…</span>':''}</div>`:''})():''}</div>`).join('')}
+function vStat(){const h=S.hist,tot=h.reduce((a,x)=>a+x.pr,0),best=h.reduce((a,x)=>Math.max(a,x.pr),0);
+ return `<div class="card"><div class="row"><div><div class="m">Общая прибыль</div><div class="pr ${tot>=0?'g':'r'}">${f(tot)}</div></div><div><div class="m">Сделок</div><div class="pr">${h.length}</div></div><div><div class="m">Средняя</div><div class="pr">${h.length?f(tot/h.length):'—'}</div></div><div><div class="m">Лучшая</div><div class="pr">${f(best)}</div></div></div><div class="m" style="margin-top:6px">Репутация: ${repL()} (${S.rep}/100)</div></div>
+ <div class="card"><b>История сделок</b>${h.slice().reverse().slice(0,25).map(x=>`<div class="row m" style="margin-top:6px"><span>д.${x.day} ${x.n}</span><span>${f(x.buy+x.sp)} → ${f(x.sell)} <b class="${x.pr>=0?'g':'r'}">${x.pr>=0?'+':''}${f(x.pr)}</b></span></div>`).join('')||'<div class="m">Пока пусто</div>'}</div><button onclick="A.reset()">Начать заново</button>`}
+function R_(){$('cash').textContent=f(S.cash);$('rep').textContent=repL();$('day').textContent=S.day;
+ $('tabs').innerHTML=[['m','Объявления'],['g','Гараж'],['s','Продажа'],['t','Статистика']].map(t=>`<button class="${U.tab===t[0]?'on':''}" onclick="A.tab('${t[0]}')">${t[1]}</button>`).join('');
+ $('main').innerHTML={m:vMarket,g:vGarage,s:vSale,t:vStat}[U.tab]();save()}
+fill();R_();
+</script>
+</body>
+</html>
